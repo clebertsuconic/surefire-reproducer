@@ -1,0 +1,73 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.clebertsuconic</groupId>
+  <artifactId>surefire-reproducer</artifactId>
+  <packaging>jar</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <name>surefire-reproducer</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <junit.version>4.13.2</junit.version>
+    <check-leak-version>0.11</check-leak-version>
+    <check-leak-deploy-name>checkleak.lib</check-leak-deploy-name>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+      <!-- License: EPL 1.0 -->
+    </dependency>
+    <!-- check-leak, which is a library to inspect the VM using JVMTI and assert successful garbage cleanups.
+     https://github.com/check-leak/check-leak -->
+    <dependency>
+      <groupId>io.github.check-leak</groupId>
+      <artifactId>check-leak</artifactId>
+      <version>${check-leak-version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <!-- It will install the proper native library required for the current platform. -->
+        <groupId>io.github.check-leak</groupId>
+        <artifactId>checkleak-maven-plugin</artifactId>
+        <version>${check-leak-version}</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <id>find-native</id>
+            <goals>
+              <goal>install</goal>
+            </goals>
+            <configuration>
+              <target>${project.basedir}/target/lib</target>
+              <!-- I'm selecting a name for the deployed file here. it can be any name and extension you choose as long as it matches the one passed on the JDK argument -->
+              <lib>${check-leak-deploy-name}</lib>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.1.2</version>
+        <configuration>
+          <argLine>-agentpath:${project.basedir}/target/lib/${check-leak-deploy-name}</argLine>
+          <forkCount>1</forkCount>
+          <reuseForks>true</reuseForks>
+          <runOrder>alphabetical</runOrder>
+          <redirectTestOutputToFile>false</redirectTestOutputToFile>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
